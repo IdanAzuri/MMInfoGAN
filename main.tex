@@ -1,0 +1,351 @@
+%++++++++++++++++++++++++++++++++++++++++
+% Don't modify this section unless you know what you're doing!
+\documentclass[letterpaper,12pt]{article}
+\usepackage{tabularx} % extra features for tabular environment
+\usepackage{amsmath}  % improve math presentation
+\usepackage{graphicx} % takes care of graphic including machinery
+\usepackage[margin=1in,letterpaper]{geometry} % decreases margins
+\usepackage{cite} % takes care of citations
+\usepackage[final]{hyperref} % adds hyper links inside the generated pdf file
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{amsfonts}
+\newcommand{\lowerromannumeral}[1]{\romannumeral#1\relax}
+\usepackage{blindtext}
+\usepackage[inline]{enumitem}
+\usepackage{subfigure}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{appendix}
+
+
+
+\hypersetup{
+	colorlinks=true,       % false: boxed links; true: colored links
+	linkcolor=blue,        % color of internal links
+	citecolor=blue,        % color of links to bibliography
+	filecolor=magenta,     % color of file links
+	urlcolor=blue         
+}
+%++++++++++++++++++++++++++++++++++++++++
+
+
+\begin{document}
+
+\title{Using Generative Adversarial Networks for Moving Between Attributes on the Manifold}
+\author{Idan Azuri}
+\date{\today}
+\maketitle
+
+\begin{abstract}
+Deep Convolutional Neural Networks (CNN) have a huge impact on the computer vision filed especially on object recognition and classification. Despite the great success of CNN methodology it has  a significant weakness, it depends heavily on the existence of very large and varied datasets.
+In this work I explore some supervised and unsupervised methods for generating new samples in order to enlarge datasets, the motivation for that is to overcome the Achilles' heel of CNNs at classification and pattern recognition tasks - the lack of large datasets. My focus on this work is to investigate variations of InfoGAN by changing the model prior, and measuring the efficiency of each variant using pretrained CNN. 
+
+\end{abstract}
+
+
+\section{Introduction}
+
+ A generative model is a powerful way of learning any kind of data distribution both with supervised and unsupervised manner and it has achieved tremendous success in just few years.  All types of generative models aim at learning the true data distribution of the training set so as to generate new data points with some variations. Theoretically, in this work I use the assumption that for any given images datasets there is a low dimensional structure where the high dimensional distribution concentrate on or near a low dimensional manifold  ,(Cayton, 2005; Narayanan and Mitter, 2010)\cite{NIPS2011_4409},\cite{Bengio-et-al-2015-Book}.Therefore, a set of natural images does not span a linear subspace in the pixel space, instead, it is believed to constitute a low dimensional sub-manifold \cite{pmlr-v28-bengio13}.\newline
+In this study, I explore new ideas of variations of infoGAN \cite{NIPS2016_6399} by looking on the effect of different prior for the model. 
+
+Beside that I came up with a new architecture which aims to solve the same problem that I stated above. This method purpose is to learn an invariant images class representation \(z\) and then it tries to maximize the mutual information between the salient semantic features of the distribution \(\{c_1,c_2...c_l\}\) so the output of the model would be \(P(X|c)\) (I use the same notations as it used in the preceding article\cite{NIPS2016_6399}). The  model is composed of two phases:\newline
+\begin{enumerate*}[label={\roman*)},font={\color{red!50!black}\bfseries}]
+\item An Auto-Encoder step for learning the sub-manifold of the image set. This part of the model is trained by reconstruction of the original input image from the low dimensional space \(z\).
+
+\item A generative adversarial component that responsible of learning the salient semantic features of the images set (these semantic feature are the unknown attributes of the images set, for instance an attribute can be pose, illumination, accessories etc.). The combination of this two components and the parameters sharing within the training process aiming to learn the prior of the model, which spans the sub-manifold of the image set.
+\end{enumerate*}
+ \begin{figure}[H]
+\centering
+\includegraphics[scale=0.8]{faderInfoGan}
+\caption{\label{figure 1 }My method architecture. Where X is the input, $c$ is the latent features of x  and  \( Q(c\mid x) \) is auxiliary function to approximate \(P(c\mid x)\)}.
+\end{figure}
+
+By the learned image set distribution manifold , the model able to generate new versatile samples of the given input image. 
+The diversified image synthesis also can be used for training a new classier for object recognition.
+\newline\newline\textbf{Note:} In this work I did not added the results of the experiments that I made with the suggested model, this is out of scope for this lab project.
+
+\section{Theory}
+In visual object recognition, patterns can be represented in three possible levels: point (i.e., individual sample), subspace (i.e., linear model spanned by some samples), and manifold (i.e., nonlinear low-dimensional embedding). Nevertheless, the images in the sets are generally of large amount and cover many variations in the object’s appearance, due to the camera pose changes, object location, different illuminations conditions etc. Therefore, we can assume that the images in each image set distribute on a nonlinear manifold. Consider the last statement, it motivate us to try to build a model that learns the manifold of each image set such that it would be possible to move between different attributes smoothly, [Figure \ref{MNIST manifold }]. In this study I cover some of the new approaches for learning the sub-manifold that a given images set is embedded in.
+ \begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{manifold_mnist_1}
+\caption{\label{MNIST manifold }}A manifold illustration of the number 1 from the MNIST dataset, where the continuous latent code is tilt and width.
+\end{figure}
+\subsection*{ Related Work}
+The first approach which deals with learning a sub-manifold of an image set is via learning the image set distribution using generative methods. One of the most influential works of generative models is \textit{Generative Adversarial Networks} (GAN). In the first part of this work I describe some of the must important GAN architectures. Next, I discuss the recent works on moving between attributes on the manifold \cite{deeptraverse} via manifold traversing (image transformation on the manifold) combined with CNNs to learn the embeddings of the give dataset.
+\linebreak\vspace{5mm}
+
+In 2014 Goodfellow et al.\cite{DBLP:conf/nips/GoodfellowPMXWOCB14} proposed a generative model, called Generative Adversarial Networks (GANs).The classic GANs composed of two networks, a generator denote by \(\mathcal{G}\)  and a discriminator denotes by \(\mathcal{D}\). The discriminator tries to distinguish fake images from real ones while the generator produces fake images when it tries to fool the discriminator. Both networks are jointly trained in a competitive way. The resulting generator is able to synthesize plausible images.
+The objective function of a two-player minimax game can be described by the value of the function \(V(G,D)\)as written in Eq 1:
+\begin{equation} \label{eq:ganeq1} % the label is used to reference the equation
+\min _G \max _D V(D,G)=\mathop{{}\mathbb{E}}_{x\sim \mathcal{P}_{Data}}[\log D (x|y)] +  \mathop{{}\mathbb{E}}_{z\sim \mathcal{P}_{Z(z)}}[\log (1-D(G(z|y)))]
+\end{equation}
+In other words the generator \(\mathcal{G}\) maps a noise vector z in the latent space to a generated image \(\mathcal{G}:\mathcal{G}(z)) \mapsto \mathbb{R} ^{|x|}\) where \(z \in \mathbb{R}^{|z|}\) is a sample from the latent space and \(|\cdot|\) denotes the image dimension. The discriminator defined by \(\mathcal{D}:\mathcal{D}\mapsto(0,1)\) when \(x\to 0\) means the discriminator classifies the input image as fake (\(x\sim \mathcal{P}_{Z(z)}\)) or \(x\to 1\) if the input image classified as real (\(x\sim \mathcal{P}_{Data}\))\cite{DBLP:journals/corr/abs-1710-07035}. 
+
+\subsection{GAN variants}
+\begin{description}
+\item[CGAN]  Conditional Generative Adversarial Networks (cGANs) was introduced by Mirza and Osindero\cite{DBLP:journals/corr/MirzaO14}. The cGAN is extension of GAN into a conditional model where the generator \(\mathcal{G}\) and the discriminator \(\mathcal{D}\) are now conditioned by extra information \(y\). The extra information could be class labels, text, or sketches. cGANs provide additional controls on
+which kind of data are being generated, while the original GANs do not have such controls. We can perform the conditioning by feeding \(y\) into the both the discriminator and generator as additional input layer.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{CGAN.png}
+\caption{\label{figure 2 }CGAN architecture (taken from \cite{DBLP:journals/corr/MirzaO14}).}
+\end{figure}
+\newpage
+\item [InfoGAN] An  unsupervised (or supervised)  approach to address the problem that cGAN tries to solve is the InfoGan who introduced by Xi Chen et al. \cite{NIPS2016_6399}. The authors propose a new regularization of the GAN training objective. They maximize the mutual information \(I(c,\mathcal{G}(c|z))\)  where \(z\) is the prior (random noise variable) and \(c\) is a subset of the latent code. Actually they decompose the input noise vector into two parts:(\lowerromannumeral{1}) \( z\) incompressible source (\lowerromannumeral{2}) \(c\) “latent code” the structured semantic features of the data distribution. Their method is to maximize the mutual information between the sampled latent codes \(c\) and generator's distribution \(\mathcal{G}(z|c)\).
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{infoGan}
+\caption{\label{figure 3 }InfoGAN architecture.}
+\end{figure}
+Hence, the new objective function of InfoGAN is defined as the following minimax game with a variational regularization of mutual information and a hyperparameter \(\lambda\)
+\begin{equation} \label{eq:ganeq2} % the label is used to reference the equation
+\min _G \max _D V_I(D,G)= V(D,G) -  \lambda I(c,\mathcal{G}(c|z))
+\end{equation}
+It’s not practical to calculate the mutual information explicitly, so a lower bound is approximated using standard variational arguments.  This consists of introducing an “auxiliary” distribution \(Q(c|x)\), which is modeled by a parameterized neural network, and is meant to approximate the real \(P(c|x)\). 
+The representations which is learned by InfoGAN appears to be semantically meaningful, dealing with complex dependent factors in image appearance, including variations in pose, lighting and emotional content of facial images.
+More specifically, as shown in the original article's results -when choosing the latent code to be discrete on MNIST it works as classifier between the different digits. However, continuous codes capture continuous variations in style such as width, rotation.
+\item[DCGAN] Radford et al.\cite{RadfordMC15} presented Deep Convolutional Generative Adversarial Networks (DCGANs). They proposed a class of architecturally constrained convolution networks for both generator and discriminator. 
+The architecture constraints are:
+\begin{enumerate*}[label={\roman*)},font={\color{red!50!black}\bfseries}]
+\item replacing all pooling layers with strided convolutions and fractional-strided convolutions.
+\item using batch-norm layers.
+\item removing fully connected hidden.
+\item in the generator, using tanH as the activation function and using Rectified Linear Units (ReLU) activation for other layers.
+\item in the discriminator, using Leaky ReLU activation in discriminator for all layers.
+\end{enumerate*}
+\item[WGAN] Arjovsky et al.\cite{pmlr-v70-arjovsky17a} proposed Wasserstein Generative Adversarial Networks (WGANs). Wasserstein Gan is an alternative for the traditional Gan by stating a new metric they theoretically showed that the Earth-Mover (EM) distance produces better gradient behaviors in distribution learning compared to other distance metrics. Accordingly, they made several changes to regular GANs:
+\begin{enumerate*}[label={\roman*)},font={\color{red!50!black}\bfseries}]
+\item removing the sigmoid layer and adding weight clipping in the discriminator
+\item removing the log function in the adversarial loss. They demonstrated that WGANs generate images with comparable quality compared to well designed DCGANs
+\end{enumerate*}
+\end{description}
+
+\subsection{Deep Manifold Traversal} Proposed by Jacob R. Gardner et al. \cite{deeptraverse}, a method that addresses the problem of make a semantic change to the image appearance. Its most general form: it first approximates the manifold of natural images using CNN\(^\star\), then morphs a test image along a traversal path from the source class and towards to the target class while staying near the manifold throughout. Use Gaussian kernel within Maximum Mean Discrepancy (MMD) to estimate the distributions of source and target images in this feature space to guide the traversal.The MMD metric measures the maximum difference between the mean function values.
+ 
+\(\star\) They rely on the assumption of Bengio et al.\cite{pmlr-v28-bengio13} that deep CNN linearize the manifold of the natural images. 
+\subsection{Deep Feature Interpolation} \cite{deep_feature_interpolation} Another method to "traverse" the manifold by a simple interpolation of deep convolutional features from pre-trained CNNs. They use a CNN  to obtain a new representation
+of an image, which they denote as $x\mapsto\phi(x)$. Deep Feature Interpolation can be summarized in four
+high-level steps: \begin{enumerate*}[label={\roman*)},font={\color{red!50!black}\bfseries}]
+
+\item mapping the images in the target and source sets into the deep feature representation through the pre-trained CNN  (e.g., VGG-19).
+\item Computing the mean feature values for each set of
+images, target $t$ and source $s$, and define their difference as the
+\textit{attribute vector} $w=\phi^t - \phi^s$.
+
+\item Mapping the test image $x$ to a point $(x)$ in deep feature space and move it along the attribute vector $w$, resulting
+in $\phi(x) + \alpha w$.
+
+\item Reconstruct the transformed output image $z$ by
+solving the reverse mapping into pixel space w.r.t. $z$
+$\phi(z) = \phi(x) + \alpha w$.
+\end{enumerate*}
+%\subsection{Transfer Learning on Manifolds via Learned Transport Operators}
+\subsection{Fader Networks} A relative new study from the early of 2018 \cite{DBLP:journals/corr/LampleZUBDR17} an encode-decoder architecture which trained to reconstruct images directly from the latent space. The encoder-decoder is trained based on two objective functions at the same time. 1) reconstruction of the original input image. 2) it tries to fool the attribute classifier (the latent space must prevent it from predicting the correct attribute values).This approach is different from CGAN because they use adversarial training for the latent space instead of the output.
+\begin{figure}[H]
+\centering
+\includegraphics[width=150mm]{fader_net}
+\caption{\label{figure 4  }Fader Networks architecture. An (image, attribute) pair (x; y) is given as input. The encoder maps x to the latent representation z; the discriminator is trained to predict y given z whereas the encoder is trained to make it impossible for the discriminator to predict y given z only. The decoder should
+reconstruct x given (z; y). At test time, the discriminator is discarded and the model can generate
+different versions of x when fed with different attribute values..}
+\end{figure}
+
+\section{Methods}
+I conducted many experiments in order to explore the best practices for taking advantage of GANs variations for traversing the dataset manifold as described in the theory part. As for a baseline for my work I used the same architecture that is suggested in the InfoGAN paper, which showed decent results on Mnist and Fashion-Mnist datasets. Adding to the original architecture I tried a combination of WGAN Gradient Policy and DCGAN in order to improve the model training stability and for better results (visually). I used one discrete latent code \(c_1\sim CAT(K=10, p=0.1)\) and two continuous codes that can catch variations which are continuous in nature \(c_2,c_3\sim Uniform[-1,1]\). Now for the prior \((z)\) I sampled from four different distributions: \begin{enumerate*}[label={\roman*)},font={\color{red!50!black}\bfseries}]	
+\linebreak\newline\item Uniform distribution \(Uniform[-1,1]\) \newline
+\item Gaussian distribution %$\mathbb{N}(\mu=0,\sigma=0.15)$
+\newline
+\item Multimodal Gaussian distribution% $\mathbb{N}(\mu[-0.1,0.1]^{\star\star},\Sigma=I*0.15)$
+\newline
+\item Multimodal uniform distribution Uniform[-1,1]\newline
+\end{enumerate*}
+\newline
+\newline
+$\star\star$- [-0.1,0.1] The range between -0.1,0.1 where the step is determined by the number of classes in the dataset.
+\subsubsection*{Mapping}
+Due to the unsupervised training of the model there is a discrepancy between the original labels and the synthesized labels, for instance if the dataset is Fashion-MNIST and the original label for shoes is six the synthesized data may determine that label for shoes is four. So, in order to match the labels between the original dataset and the model's generated dataset I created a mapping that uses a pretrained classifier on the original dataset, the model tests  the generated datasets and return the arg-max label for each class; Then it filters the examples that have high confidence score (high score in the feature vector after applying soft-max that scales the score between 0 to 1); Finally, the mapping method assigns the new label for each class based on the pretrained model.  This methods is good, yet it is not perfect, since there are some mismatches between the new labels and the original labels which damages the performances in the evaluation of the model.
+\begin{figure}[H]  
+    \fbox{\includegraphics{infoGAN_epoch037_test_class_c1c2_6}}   
+    \hspace{30px}
+    \fbox{\includegraphics{infoGAN_epoch037_test_class_c1c2_7}}
+    \hspace{30px}
+    \caption{MNIST dataset - I used fixed noise as the generator input $(\vec{z})$, as for the latent code $(\vec{c})$ the input is sampled from $[-1,1]$, and the results are ordered by the cartesian product of \( c_2 \times c_3\) where \(c_1\) is forced to 6,1 respectively.}
+    \label{mnist}
+\end{figure}
+\begin{figure}[H]       
+      \fbox{\includegraphics{infoGAN_epoch039_test_class_c1c2_0.png}}
+    \hspace{30px}
+    \fbox{\includegraphics{MultiModalInfoGAN_epoch039_test_class_c1c2_5.png}} 
+    \hspace{30px}
+    \caption{Fashion-MNIST dataset, \textbf{Uniform sampling}: Also here I used fixed noise as the generator input $(\vec{z})$, as for the latent code $(\vec{c})$ the input is sampled from $[-1,1]$, and the results are ordered by the cartesian product of \( c_2 \times c_3\) where \(c_1\) is forced to one value. It can be seen that in these examples there is a jump between class when traversing the manifold.}
+    \label{fashion_mnist_1}
+\end{figure}
+\begin{figure}[H]       
+    \fbox{\includegraphics{infoGAN_epoch039_test_class_c1c2_8.png}}   
+    \hspace{30px}
+    \fbox{\includegraphics{infoGAN_epoch039_test_class_c1c2_5.png}}
+    \hspace{30px}
+    \caption{Fashion-MNIST dataset, \textbf{Multi-modal Gaussian sampling}: I used fixed noise as the generator input $(\vec{z})$, as for the latent code $(\vec{c})$ the input is sampled from $[-1,1]$, and the results are ordered by the cartesian product of \( c_2 \times c_3\) where \(c_1\) is forced to one value. Comparing to the uniform sampling these results seems more convincing, and the changes in the latent code space is more smooth.}
+    \label{fashion_mnist_2}
+\end{figure}
+
+
+\section{Discussion}
+Generally speaking, in GANs performances analysis the evaluation part is often overlooked and I think we lack clarity around how they should be evaluated.
+In this work I used the measurement of accuracy of a convolutional classifier that is trained on the model synthesized dataset, while the test conducted on the original dataset. Visualizing the results reveals that multi-modal Gaussian succeeded to  separate the classes better then the other methods, it can be seen in the Fashion-Mnist samples (\ref{fashion_mnist_1},\ref{fashion_mnist_2}). For instance when I tried the edge cases (values that are close to the sampling bounds 1,-1) of the latent vector $\vec{c}$, some of the synthesized images were from other classes (\ref{fashion_mnist_2}). Clearly that effects directly on the percentage of accuracy in the graph(Figure 9).
+An explanation for these results, is that using multi-modality  prior it helps the generator to learn the differences between the class due to the fact that each class has different (normal) distribution.
+\newline
+My fist observation from my results (\ref{plot_results}) is that there is a connection between the sampling method and the success rate of the classifier and in addition to the visual results there is also a numeric measure for comparison between the different sampling methods. Second, the graph supports the visual insight that the multi-modal Gaussian has an advantage on the other tested sampling methods in terms of accuracy.
+
+
+
+
+\subsubsection*{More Observations}
+\begin{enumerate*}[font={\color{red!50!black}\bfseries}]
+
+ \item Applying WGAN loss into InfoGAN does not contribute to the model learning in terms of training time or  the results.\newline
+\item The confidence score (the maximum score of the latent vector of the model) is not a good measure because it does not correlate with the visual output.\newline
+
+\item Also filtering samples by their confidence score does not show any improvement in the results (the accuracy is less or equal).\newline
+
+\item There exists a connection between the order of the synthesized samples and the success rate of the evaluating CNN model. This finding will be investigated in the upcoming work (\ref{figure 10}). 
+
+\newline\end{enumerate*}
+
+\begin{figure}[H]
+\centering
+% \hspace{30px}
+\fbox{\includegraphics[width=120mm]{MMinfoGAN_comparison.png}}
+% \hspace{30px}
+\caption{\label{plot_results} Accuracy comparison between six different sampling method on the Fashion-Mnist dataset: Gaussian multi-modal with 10/5/3 centers, one dimension Gaussian and uniform. The black lines are the standard errors.}
+\end{figure}
+
+\section{Conclusions}
+In this study I investigated the methodology of learning the manifold of an images set, where you do not have supervision and without a prior knowledge on the manifold dimension (the latent codes of the image set). In this work I encountered some difficulties which are related to the methodology of Generative Adversarial Networks in particular in the evaluation part, stability issues and hyper parameters tunning. I showed that different sampling method has a significant effect on the results both numerically and visually. 
+Finally, I demonstrated the applications of MMInfoGAN in disentangling the style and content of images (see the appendix).
+
+
+\bibliographystyle{plain}
+\bibliography{ref.bib}
+\newpage
+
+\appendix 
+\section{Appendix - MMInfoGAN hyper-parameters comparison}
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_10_modals_mu_1_0}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_10_modals_mu_0_1}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_10_modals}}
+    \hspace{10px}
+
+    \caption{MMInfoGAN different $\Sigma$, $\mu$ and fixed 10 modalities in Gaussian multi-modal comparison}
+\end{figure}
+
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_5_modals.png}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_5_modals_mu_0_1.png}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_5_modals_mu_1_0.png}}
+    \hspace{10px}
+
+    \caption{MMInfoGAN different $\Sigma$, $\mu$ and fixed 5 modalities in Gaussian multi-modal comparison}
+\end{figure}
+
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_3_modals.png}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_3_modals_mu_0_1.png}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.5]{MMinfoGAN_Fsion-Mnist_multi-modal_Gaussian_Sampler_3_modals_mu_1_0.png}}
+    \hspace{10px}
+
+    \caption{MMInfoGAN different $\Sigma$, $\mu$ and fixed 3 modalities in Gaussian multi-modal comparison}
+\end{figure}
+
+
+\section{Appendix - InfoGAN on MNIST dataset sampling methods}
+I managed to create different types of sampling methods from the trained model, in my work I sampled from all the groups equally and shuffled them. Yet, I observed that there is meaning for the sampling order  but that remains for future work.\newline
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.8]{MultiModalInfoGAN_type_czcc_label_7}}\hspace{10px}\fbox{\includegraphics[scale=0.8]{MultiModalInfoGAN_type_czrc_label_7}}\hspace{10px}\fbox{\includegraphics[scale=0.8]{MultiModalInfoGAN_type_rzcc_label_7}}\hspace{10px}\fbox{\includegraphics[scale=0.8]{MultiModalInfoGAN_type_rzrc_label_7}}
+	\hspace{10px}  
+    
+    
+    \caption{\label{figure 10}MMInfoGAN multi-modal Gaussian sampling results by four groups:(upper)1.fixed z, fixed discrete code, fixed continuous code 2. fixed z, fixed discrete code, random continuous code (bottom)3.random z, fixed discrete code, fixed continuous code. 4. random z, fixed discrete code, random continuous code }
+\end{figure}
+
+
+\section{Appendix - InfoGAN on \textbf{MNIST} dataset results}
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.8]{uniform5}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{uniform10}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{uniform20}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{uniform40}}
+    \hspace{10px}
+    \caption{MMInfoGAN \textbf{Uniform sampling} results by number of epochs from top left to lower right: (1)epoch 5 (2)epoch 10 (3)epoch 20 (4)epoch 40}
+\end{figure}
+
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.8]{multi5}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi10}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi20}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi40}}
+    \hspace{10px}
+    \caption{MMInfoGAN \textbf{Gaussian multi-modal sampling } results by number of epochs from top left to lower right: (1)epoch 5 (2)epoch 10 (3)epoch 20 (4)epoch 40}
+\end{figure}
+
+
+
+
+\section{Appendix - InfoGAN on FASHION-MNIST dataset results}
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.8]{uniform_fashion5}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{uniform_fashion10}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{uniform_fashion20}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{uniform_fashion40}}
+    \hspace{10px}
+    \caption{MMInfoGAN \textbf{Uniform sampling} results by number of epochs from top left to lower right: (1)epoch 5 (2)epoch 10 (3)epoch 20 (4)epoch 40}
+\end{figure}
+
+
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.8]{multi_fashion5}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi_fashion10}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi_fashion20}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi_fashion40}}
+    \hspace{10px}
+    \caption{MMInfoGAN \textbf{Gaussian multi-modal sampling } results by number of epochs from top left to lower right: (1)epoch 5 (2)epoch 10 (3)epoch 20 (4)epoch 40}
+\end{figure}
+
+
+\begin{figure}[H]  
+    \fbox{\includegraphics[scale=0.8]{uniform_fashion40}}   
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi_uniform_fashion_40}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{gauss_fashion_40.png}}
+    \hspace{10px}
+    \fbox{\includegraphics[scale=0.8]{multi_fashion40}}
+    \hspace{10px}
+    \caption{MMInfoGAN \textbf{Different prior sampling after epoch 40} results from top left to lower right: (1)Uniform (2)Uniform multi-modal (3) Gaussian (4) Gaussian multi-modal}
+\end{figure}
+
+
+\end{document}
